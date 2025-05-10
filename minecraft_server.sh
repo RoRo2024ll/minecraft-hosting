@@ -1,36 +1,28 @@
 #!/bin/bash
 
-# 서버 시작 함수
-start_server() {
-    if ! pgrep -f "minecraft_server.jar" > /dev/null; then
-        echo "Starting Minecraft server..."
-        java -Xmx1024M -Xms1024M -jar minecraft_server.jar nogui &
-        echo "Minecraft server started!"
-    else
-        echo "Minecraft server is already running."
-    fi
-}
+# 원하는 마인크래프트 버전
+MINECRAFT_VERSION="1.21.4"
+JAR_URL="https://piston-data.mojang.com/v1/objects/3275a4a3c3b1980f2b5ed1040b7710e79fc9e63b/server.jar"
 
-# 서버 중지 함수
-stop_server() {
-    if pgrep -f "minecraft_server.jar" > /dev/null; then
-        echo "Stopping Minecraft server..."
-        pkill -f "minecraft_server.jar"
-        echo "Minecraft server stopped!"
-    else
-        echo "Minecraft server is not running."
-    fi
-}
+# Java 버전 확인 (17 이상이어야 함)
+JAVA_VER=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
+if [ "$JAVA_VER" -lt 17 ]; then
+  echo "❌ Java 17 이상이 필요합니다. 현재 버전: $JAVA_VER"
+  exit 1
+fi
 
-case "$1" in
-    start)
-        start_server
-        ;;
-    stop)
-        stop_server
-        ;;
-    *)
-        echo "Usage: $0 {start|stop}"
-        exit 1
-        ;;
-esac
+# server.jar 파일 없으면 다운로드
+if [ ! -f server.jar ]; then
+  echo "📥 server.jar 다운로드 중..."
+  curl -o server.jar "$JAR_URL"
+fi
+
+# eula 동의
+if [ ! -f eula.txt ]; then
+  echo "eula=true" > eula.txt
+  echo "✅ EULA 동의 완료"
+fi
+
+# 서버 실행
+echo "🚀 마인크래프트 서버 시작 (버전 $MINECRAFT_VERSION)..."
+java -Xmx1024M -Xms1024M -jar server.jar nogui
